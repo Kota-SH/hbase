@@ -2651,4 +2651,10 @@ public interface Admin extends Abortable, Closeable {
    * Get the list of cached files
    */
   List<String> getCachedFilesList(ServerName serverName) throws IOException;
+
+  /**
+   * Check if the current instance is in read-only mode.
+   * @return true if the instance is read-only, false otherwise.
+   */
+  boolean refreshHBaseMeta() throws IOException;
 }

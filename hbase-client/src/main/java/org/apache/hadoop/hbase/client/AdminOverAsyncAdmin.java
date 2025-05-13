@@ -1136,4 +1136,9 @@ class AdminOverAsyncAdmin implements Admin {
   public List<String> getCachedFilesList(ServerName serverName) throws IOException {
     return get(admin.getCachedFilesList(serverName));
   }
+
+  @Override
+  public boolean refreshHBaseMeta() throws IOException {
+    return false;
+  }
 }
