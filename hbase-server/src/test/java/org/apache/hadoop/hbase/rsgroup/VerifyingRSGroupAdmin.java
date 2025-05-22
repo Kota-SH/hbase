@@ -991,7 +991,7 @@ public class VerifyingRSGroupAdmin implements Admin, Closeable {
   }
 
   @Override
-  public boolean refreshHBaseMeta() throws IOException {
-    return admin.refreshHBaseMeta();
+  public Long refreshMeta() throws IOException {
+    return admin.refreshMeta();
   }
 }

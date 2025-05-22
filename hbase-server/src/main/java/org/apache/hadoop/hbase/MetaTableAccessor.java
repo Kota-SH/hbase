@@ -262,6 +262,7 @@ public final class MetaTableAccessor {
    */
   public static List<RegionInfo> getAllRegions(Connection connection,
     boolean excludeOfflinedSplitParents) throws IOException {
+    LOG.info("kkkk");
     List<Pair<RegionInfo, ServerName>> result;
 
     result = getTableRegionsAndLocations(connection, null, excludeOfflinedSplitParents);
@@ -742,7 +743,7 @@ public final class MetaTableAccessor {
    * @param connection connection we're using
    * @param deletes    Deletes to add to hbase:meta This list should support #remove.
    */
-  private static void deleteFromMetaTable(final Connection connection, final List<Delete> deletes)
+  public static void deleteFromMetaTable(final Connection connection, final List<Delete> deletes)
     throws IOException {
     try (Table t = getMetaHTable(connection)) {
       debugLogMutations(deletes);

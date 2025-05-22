@@ -17,7 +17,11 @@
  */
 package org.apache.hadoop.hbase.master;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,15 +74,8 @@ public class TestRefreshMetaCommand {
     TEST_UTIL.cleanupTestDir();
   }
 
-  @Test public void test0() {
-    LOG.info("helloo");
-  }
-
   @Test
-  public void testNoChangesNeededSpy() throws IOException, MetaRefreshException, InterruptedException {
-    // Create a spy of the command to intercept method calls
-
-    // Setup test regions
+  public void testNoChanges() throws IOException, MetaRefreshException, InterruptedException {
     List<RegionInfo> currentRegions = createTestRegions(3);
 
     // Mock methods to return our test data
@@ -98,46 +95,113 @@ public class TestRefreshMetaCommand {
 
   @Test
   public void testNewRegions() throws IOException, MetaRefreshException, InterruptedException {
-    // Arrange: Setup mock regions
-    List<RegionInfo> existingRegions = createTestRegions(2);
-    List<RegionInfo> updatedRegions = new ArrayList<>(existingRegions);
-    updatedRegions.add(createRegionInfo("test", "new_region"));
+    List<RegionInfo> currentRegions = createTestRegions(1);
+    List<RegionInfo> latestRegions  = createTestRegions(2);
 
-    // Mock current regions from meta table
-    doReturn(true).when(cmdSpy).checkForReadOnlyMode();
-    doReturn(existingRegions).when(cmdSpy).getCurrentRegionsUsingMTA();
-    doReturn(updatedRegions).when(cmdSpy).scanBackingStorage();
+    // stub the two branch methods
+    doReturn(currentRegions).when(cmdSpy).getCurrentRegionsUsingMTA();
+    doReturn(latestRegions) .when(cmdSpy).scanBackingStorage();
 
-    // Act: Execute the command
+    // run the logic under test
     cmdSpy.execute();
 
-    // Assert: Verify new region was added
-    verify(cmdSpy, times(1))
-      .updateMetaTable(existingRegions, updatedRegions);
+    // now verify
+    verify(cmdSpy, times(1)).needsUpdate(currentRegions, latestRegions);
+    verify(cmdSpy, times(1)).updateMetaTable(currentRegions, latestRegions);
   }
 
-//
-//  @Test
-//  public void testRemovedRegions() throws IOException, MetaRefreshException {
-//    // Setup mock regions
-//    List<RegionInfo> currentRegions = createTestRegions(3);
-//    List<RegionInfo> latestRegions = new ArrayList<>(currentRegions.subList(0, 2));
-//
-//
-//    // Mock current regions from meta table
-//    when(MetaTableAccessor.getAllRegions(connection, false)).thenReturn(currentRegions);
-//
-//    // Mock backing storage scan
-//    mockBackingStorage(latestRegions);
-//
-//    // Execute command
-//    command.execute();
-//
-//    // Verify region was removed
-//    verify(metaTable, times(1)).delete(any(Delete.class));
-//
-//
-//  }
+  @Test
+  public void testRemoveRegions() throws Exception, MetaRefreshException {
+    List<RegionInfo> currentRegions = createTestRegions(3);
+    List<RegionInfo> latestRegions = new ArrayList<>(currentRegions.subList(0, 2));
+
+    // stub the two branch methods
+    doReturn(currentRegions).when(cmdSpy).getCurrentRegionsUsingMTA();
+    doReturn(latestRegions) .when(cmdSpy).scanBackingStorage();
+
+    // run the logic under test
+    cmdSpy.execute();
+
+    assertTrue(
+      "should detect that a region was added",
+      cmdSpy.needsUpdate(currentRegions, latestRegions)
+    );
+    // now verify
+    verify(cmdSpy, times(1)).updateMetaTable(currentRegions, latestRegions);
+  }
+
+  @Test
+  public void testScanBackingStorage_picksUpAllRegionDirs() throws Exception {
+    // Build two RegionInfo objects to “publish” on disk
+    TableName tn = TableName.valueOf("myTable");
+    List<RegionInfo> regions = new ArrayList<>();
+    RegionInfo r1 = RegionInfoBuilder.newBuilder(tn)
+      .setStartKey(Bytes.toBytes("A"))
+      .setEndKey(  Bytes.toBytes("M"))
+      .build();
+    RegionInfo r2 = RegionInfoBuilder.newBuilder(tn)
+      .setStartKey(Bytes.toBytes("M"))
+      .setEndKey(  Bytes.toBytes("Z"))
+      .build();
+    regions.add(r1);
+    regions.add(r2);
+
+//    List<RegionInfo> regions = createTestRegions(2);
+
+    // 4) Manually create the on-disk layout:
+    //    <HBASE_DIR>/myTable/<encodedRegionName>/
+    Path rootDir = TEST_UTIL.getDataTestDirOnTestFS();
+
+    // Create the table directory
+    Path tableDir = new Path(rootDir, "test");
+    fs.mkdirs(tableDir);
+
+    // Create region directories
+    for (RegionInfo r : regions) {
+      fs.mkdirs(new Path(tableDir, r.getEncodedName()));
+      LOG.info("added: {}", r.getEncodedName());
+    }
+
+    // Invoke the method under test
+    List<RegionInfo> found = cmdSpy.scanBackingStorage();
+    LOG.info("found: {}, {}", found.size(), found);
+
+    // Verify we got exactly r1 and r2 (order doesn’t matter)
+    assertEquals(2, found.size());
+    assertTrue("should contain regions", found.contains(regions));
+  }
+
+  @Test
+  public void testScanBackingStorage_skipsHiddenOrMalformedDirs() throws Exception {
+    // Build a valid RegionInfo object
+    TableName tn = TableName.valueOf("T");
+    RegionInfo validRegion = RegionInfoBuilder.newBuilder(tn)
+      .setStartKey(Bytes.toBytes("A"))
+      .setEndKey(Bytes.toBytes("Z"))
+      .build();
+
+    // Get the FileSystem and root directory
+    Path rootDir = TEST_UTIL.getDataTestDirOnTestFS();
+
+    // Create the table directory
+    Path tableDir = new Path(rootDir, tn.getNameAsString());
+    fs.mkdirs(tableDir);
+
+    // Create valid region directory
+    fs.mkdirs(new Path(tableDir, validRegion.getEncodedName()));
+
+    // Create hidden and malformed directories
+    fs.mkdirs(new Path(tableDir, ".hiddenDir"));
+    fs.mkdirs(new Path(tableDir, "malformedRegion"));
+
+    // Invoke the method under test
+    List<RegionInfo> found = cmdSpy.scanBackingStorage();
+
+    // Verify only the valid region is picked up
+    assertEquals(1, found.size());
+    assertTrue("should contain the valid region", found.contains(validRegion));
+  }
+
 //
 //  @Test
 //  public void testRegionBoundaryChanges() throws IOException, MetaRefreshException {
@@ -300,22 +364,36 @@ public class TestRefreshMetaCommand {
   private List<RegionInfo> createTestRegions(int count) {
     List<RegionInfo> regions = new ArrayList<>();
     for (int i = 0; i < count; i++) {
-      regions.add(createRegionInfo("test", "region" + i));
+      byte[] start = Bytes.toBytes("start" + i);
+      byte[] end   = Bytes.toBytes("start" + (i+1));
+      regions.add(RegionInfoBuilder
+        .newBuilder(TableName.valueOf("test"))
+        .setStartKey(start)
+        .setEndKey(  end)
+        .build());
     }
-    LOG.info("hehe: {}", regions);
     return regions;
   }
 
-  private RegionInfo createRegionInfo(String tableName, String regionName) {
-    return createRegionInfo(tableName, regionName, Bytes.toBytes("start"), Bytes.toBytes("end"));
-  }
-
-  private RegionInfo createRegionInfo(String tableName, String regionName, byte[] startKey, byte[] endKey) {
-    return RegionInfoBuilder.newBuilder(TableName.valueOf(tableName))
-      .setStartKey(startKey)
-      .setEndKey(endKey)
-      .build();
-  }
+//  private List<RegionInfo> createTestRegions(int count) {
+//    List<RegionInfo> regions = new ArrayList<>();
+//    for (int i = 0; i < count; i++) {
+//      regions.add(createRegionInfo("test", "region" + i));
+//    }
+//    LOG.info("hehe: {}", regions);
+//    return regions;
+//  }
+//
+//  private RegionInfo createRegionInfo(String tableName, String regionName) {
+//    return createRegionInfo(tableName, regionName, Bytes.toBytes("start"), Bytes.toBytes("end"));
+//  }
+//
+//  private RegionInfo createRegionInfo(String tableName, String regionName, byte[] startKey, byte[] endKey) {
+//    return RegionInfoBuilder.newBuilder(TableName.valueOf(tableName))
+//      .setStartKey(startKey)
+//      .setEndKey(endKey)
+//      .build();
+//  }
 
   private FileStatus createFileStatus(String name, boolean isDir) {
     return new FileStatus(0, isDir, 0, 0, 0, new Path(name));

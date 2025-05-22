@@ -2656,5 +2656,5 @@ public interface Admin extends Abortable, Closeable {
    * Check if the current instance is in read-only mode.
    * @return true if the instance is read-only, false otherwise.
    */
-  boolean refreshHBaseMeta() throws IOException;
+  Long refreshMeta() throws IOException;
 }

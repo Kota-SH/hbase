@@ -338,6 +338,12 @@ message ClearSlowLogResponseRequest {
 
 }
 
+//message RefreshMetaRequest {}
+//
+//message RefreshMetaResponse {
+//  optional bool is_meta_refreshed = 1;
+//}
+
 message ClearSlowLogResponses {
   required bool is_cleaned = 1;
 }
@@ -420,5 +426,8 @@ service AdminService {
 
   rpc GetCachedFilesList(GetCachedFilesListRequest)
     returns(GetCachedFilesListResponse);
+
+//  rpc refreshMeta(RefreshMetaRequest)
+//    returns(RefreshMetaResponse);
 
 }

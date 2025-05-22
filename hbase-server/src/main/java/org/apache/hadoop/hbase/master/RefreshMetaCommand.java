@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hbase.master;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -76,9 +77,17 @@ public class RefreshMetaCommand {
   }
 
   boolean checkForReadOnlyMode() throws IOException, MetaRefreshException {
-    if (!force && !admin.isReadOnly()) {
+    if (!force && !checkIsReadOnly()) {
       throw new MetaRefreshException("Meta refresh can only be done on read only instances");
     }
+    return true;
+  }
+
+  private boolean checkIsReadOnly() {
+//    LOG.info("Che: {}", (admin.getConnection().getConfiguration()
+//      .getBoolean(HConstants.HBASE_GLOBAL_READONLY_ENABLED_KEY, false)));
+//    return (admin.getConnection().getConfiguration()
+//      .getBoolean(HConstants.HBASE_GLOBAL_READONLY_ENABLED_KEY, false));
     return true;
   }
 
@@ -118,40 +127,79 @@ public class RefreshMetaCommand {
     return state.equals("OPEN") || state.equals("SPLITTING") || state.equals("MERGING");
   }
 
+  /**
+   * Scans the backing storage for region directories and returns a list of RegionInfo objects.
+   * This method assumes that the region directories are located under the 'data' area of HDFS.
+   *
+   * @return List of RegionInfo objects representing the regions found in the backing storage.
+   * @throws IOException if an error occurs while accessing the file system or reading region directories.
+   */
   List<RegionInfo> scanBackingStorage() throws IOException {
     List<RegionInfo> regions = new ArrayList<>();
-    FileSystem fs = FileSystem.get(admin.getConnection().getConfiguration());
-    Path rootDir = CommonFSUtils.getRootDir(admin.getConnection().getConfiguration());
+    Configuration conf = admin.getConnection().getConfiguration();
+    FileSystem fs = FileSystem.get(conf);
+    Path rootDir = CommonFSUtils.getRootDir(conf);
 
-    FileStatus[] tableDirs = fs.listStatus(rootDir);
-    for (FileStatus tableDir : tableDirs) {
-      if (!tableDir.isDirectory()) continue;
-      String tableName = tableDir.getPath().getName();
-      if (tableName.startsWith(".") || tableName.startsWith("-") ) continue;
+    // only look under the 'data' area, not WALs, archive, etc.
+    Path dataDir = new Path(rootDir, HConstants.BASE_NAMESPACE_DIR);
+    LOG.info("Scanning directory structure under dataDir: {}", dataDir);
+    logDirectoryStructure(fs, dataDir, 0);
+    if (!fs.exists(dataDir)) return regions;
 
-      FileStatus[] regionDirs = fs.listStatus(tableDir.getPath());
-      for (FileStatus regionDir : regionDirs) {
-        if (!regionDir.isDirectory()) continue;
-        String regionName = regionDir.getPath().getName();
-        if (regionName.startsWith(".")) continue;
+    // first level: namespaces (e.g. "default", "system", ...)
+    for (FileStatus nsDir : fs.listStatus(dataDir)) {
+      if (!nsDir.isDirectory()) continue;
+      String ns = nsDir.getPath().getName();
+      if (ns.startsWith(".") || ns.startsWith("-")) continue;
 
-        FileStatus[] familyDirs = fs.listStatus(regionDir.getPath());
-        if (familyDirs.length == 0) continue;
+      // second level: table directories
+      for (FileStatus tblDir : fs.listStatus(nsDir.getPath())) {
+        if (!tblDir.isDirectory()) continue;
+        String tableName = tblDir.getPath().getName();
+        if (tableName.startsWith(".") || tableName.startsWith("-")) continue;
 
-        try {
-          RegionInfo regionInfo = CatalogFamilyFormat.parseRegionInfoFromRegionName(Bytes.toBytes(regionName));
-          if (regionInfo != null) regions.add(regionInfo);
-        } catch (Exception e) {
-          LOG.warn("Failed to parse region name: {}", regionName, e);
+        // third level: region directories
+        for (FileStatus regionDir : fs.listStatus(tblDir.getPath())) {
+          if (!regionDir.isDirectory()) continue;
+          String regionName = regionDir.getPath().getName();
+          if (regionName.startsWith(".")) continue;
+          LOG.info("Found region dir: {}", regionName);
+
+          try {
+            RegionInfo ri = CatalogFamilyFormat
+              .parseRegionInfoFromRegionName(Bytes.toBytes(regionName));
+            if (ri != null) {
+              regions.add(ri);
+            }
+          } catch (Exception e) {
+            LOG.warn("Failed to parse region name: {}", regionName, e);
+          }
         }
       }
     }
     return regions;
   }
+/**
+ * Recursively logs the directory structure under the given path.
+ */
+private void logDirectoryStructure(FileSystem fs, Path dir, int depth) throws IOException {
+  String indent = "  ".repeat(depth);
+  FileStatus[] statuses = fs.listStatus(dir);
+  for (FileStatus status : statuses) {
+    LOG.info("{}- {}", indent, status.getPath());
+    if (status.isDirectory()) {
+      logDirectoryStructure(fs, status.getPath(), depth + 1);
+    }
+  }
+}
 
   boolean needsUpdate(List<RegionInfo> current, List<RegionInfo> latest) {
     Set<RegionInfo> currentSet = new HashSet<>(current);
     Set<RegionInfo> latestSet  = new HashSet<>(latest);
+    LOG.info("hhhh2: {}, and {}", latest, latestSet);
+    LOG.info("hhhh1: {}, and {}", current, currentSet);
+    LOG.info("hhhh3: {}, and {}", current.equals(currentSet.stream().toList()),
+      latest.equals(latestSet.stream().toList()));
     LOG.info("Current regions: {}, latest regions: {}", currentSet, latestSet);
     if (currentSet.size() != latestSet.size()) {
       LOG.info("Region count mismatch: current={}, latest={}", currentSet.size(), latestSet.size());
