@@ -150,7 +150,7 @@ public final class MetaTableAccessor {
     if (connection.isClosed()) {
       throw new IOException("connection is closed");
     }
-    return connection.getTable(TableName.META_TABLE_NAME);
+    return connection.getTable(MetaTableName.getInstance());
   }
 
   /**
@@ -366,7 +366,7 @@ public final class MetaTableAccessor {
   public static List<Pair<RegionInfo, ServerName>> getTableRegionsAndLocations(
     Connection connection, @Nullable final TableName tableName,
     final boolean excludeOfflinedSplitParents) throws IOException {
-    if (tableName != null && tableName.equals(TableName.META_TABLE_NAME)) {
+    if (tableName != null && tableName.equals(MetaTableName.getInstance())) {
       throw new IOException(
         "This method can't be used to locate meta regions;" + " use MetaTableLocator instead");
     }
@@ -581,7 +581,7 @@ public final class MetaTableAccessor {
    */
   @Nullable
   public static TableState getTableState(Connection conn, TableName tableName) throws IOException {
-    if (tableName.equals(TableName.META_TABLE_NAME)) {
+    if (tableName.equals(MetaTableName.getInstance())) {
       return new TableState(tableName, TableState.State.ENABLED);
     }
     Table metaHTable = getMetaHTable(conn);
@@ -848,7 +848,7 @@ public final class MetaTableAccessor {
   private static void updateTableState(Connection connection, TableState state) throws IOException {
     Put put = makePutFromTableState(state, EnvironmentEdgeManager.currentTime());
     putToMetaTable(connection, put);
-    LOG.info("Updated {} in {}", state, TableName.META_TABLE_NAME);
+    LOG.info("Updated {} in {}", state, MetaTableName.getInstance());
   }
 
   /**

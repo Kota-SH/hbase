@@ -29,7 +29,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.yetus.audience.InterfaceStability;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.errorprone.annotations.RestrictedApi;
 import org.apache.hbase.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hbase.thirdparty.com.google.common.base.Strings;
 
@@ -48,7 +51,10 @@ import org.apache.hbase.thirdparty.com.google.common.base.Strings;
  * </p>
  */
 @InterfaceAudience.Public
+@InterfaceStability.Stable
 public final class TableName implements Comparable<TableName> {
+  private static final Logger LOG = LoggerFactory.getLogger(TableName.class);
+
   private static final Logger LOG = LoggerFactory.getLogger(TableName.class);
 
   /** See {@link #createTableNameIfNecessary(ByteBuffer, ByteBuffer)} */
@@ -118,7 +124,7 @@ public final class TableName implements Comparable<TableName> {
 
   /** Returns True if <code>tn</code> is the hbase:meta table name. */
   public static boolean isMetaTableName(final TableName tn) {
-    return tn.equals(TableName.META_TABLE_NAME);
+    return tn.equals(MetaTableName.getInstance());
   }
 
   /**
