@@ -47,6 +47,7 @@ import org.apache.hadoop.hbase.KeyValueTestUtil;
 import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.TableDescriptors;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.RegionInfo;
@@ -997,7 +998,7 @@ public class TestDefaultMemStore {
     TableDescriptors tds = new FSTableDescriptors(conf);
     FSTableDescriptors.tryUpdateMetaTableDescriptor(conf);
     HRegion meta = HRegion.createHRegion(RegionInfoBuilder.FIRST_META_REGIONINFO, testDir, conf,
-      tds.get(TableName.META_TABLE_NAME), wFactory.getWAL(RegionInfoBuilder.FIRST_META_REGIONINFO));
+      tds.get(MetaTableName.getInstance()), wFactory.getWAL(RegionInfoBuilder.FIRST_META_REGIONINFO));
     // parameterized tests add [#] suffix get rid of [ and ].
     TableDescriptor desc = TableDescriptorBuilder
       .newBuilder(TableName.valueOf(name.getMethodName().replaceAll("[\\[\\]]", "_")))
