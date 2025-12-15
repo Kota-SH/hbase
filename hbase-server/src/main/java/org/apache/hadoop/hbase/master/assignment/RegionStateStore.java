@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.MetaTableAccessor;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.AsyncTable;
 import org.apache.hadoop.hbase.client.Delete;
@@ -171,7 +172,7 @@ public class RegionStateStore {
       LOG.debug(
         "Load {} entry region={}, regionState={}, lastHost={}, "
           + "regionLocation={}, openSeqNum={}",
-        TableName.META_TABLE_NAME, regionInfo.getEncodedName(), state, lastHost, regionLocation,
+        MetaTableName.getInstance(), regionInfo.getEncodedName(), state, lastHost, regionLocation,
         openSeqNum);
       visitor.visitRegionState(result, regionInfo, state, regionLocation, lastHost, openSeqNum);
     }
@@ -191,7 +192,7 @@ public class RegionStateStore {
     final Put put = new Put(CatalogFamilyFormat.getMetaKeyForRegion(regionInfo), time);
     MetaTableAccessor.addRegionInfo(put, regionInfo);
     final StringBuilder info =
-      new StringBuilder("pid=").append(pid).append(" updating ").append(TableName.META_TABLE_NAME)
+      new StringBuilder("pid=").append(pid).append(" updating ").append(MetaTableName.getInstance())
         .append(" row=").append(regionInfo.getEncodedName()).append(", regionState=").append(state);
     if (openSeqNum >= 0) {
       Preconditions.checkArgument(state == State.OPEN && regionLocation != null,
@@ -284,7 +285,7 @@ public class RegionStateStore {
         future = FutureUtils.failedFuture(e);
       }
     } else {
-      AsyncTable<?> table = master.getAsyncConnection().getTable(TableName.META_TABLE_NAME);
+      AsyncTable<?> table = master.getAsyncConnection().getTable(MetaTableName.getInstance());
       future = table.put(put);
     }
     FutureUtils.addListener(future, (r, e) -> {
@@ -331,7 +332,7 @@ public class RegionStateStore {
     }
     MutateRowsRequest request = builder.build();
     AsyncTable<?> table =
-      master.getConnection().toAsyncConnection().getTable(TableName.META_TABLE_NAME);
+      master.getConnection().toAsyncConnection().getTable(MetaTableName.getInstance());
     CompletableFuture<MutateRowsResponse> future = table.<MultiRowMutationService,
       MutateRowsResponse> coprocessorService(MultiRowMutationService::newStub,
         (stub, controller, done) -> stub.mutateRows(controller, request, done), row);
@@ -339,7 +340,7 @@ public class RegionStateStore {
   }
 
   private Table getMetaTable() throws IOException {
-    return master.getConnection().getTable(TableName.META_TABLE_NAME);
+    return master.getConnection().getTable(MetaTableName.getInstance());
   }
 
   private Result getRegionCatalogResult(RegionInfo region) throws IOException {
@@ -505,7 +506,7 @@ public class RegionStateStore {
         + " in meta table, they are cleaned up already, Skip.");
       return;
     }
-    try (Table table = master.getConnection().getTable(TableName.META_TABLE_NAME)) {
+    try (Table table = master.getConnection().getTable(MetaTableName.getInstance())) {
       table.delete(delete);
     }
     LOG.info(
@@ -695,7 +696,7 @@ public class RegionStateStore {
       return State.valueOf(state);
     } catch (IllegalArgumentException e) {
       LOG.warn(
-        "BAD value {} in " + TableName.META_TABLE_NAME + " info:state column for region {} , "
+        "BAD value {} in " + MetaTableName.getInstance() + " info:state column for region {} , "
           + "Consider using HBCK2 setRegionState ENCODED_REGION_NAME STATE",
         state, regionInfo.getEncodedName());
       return null;

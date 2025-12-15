@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.MetaMutationAnnotation;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.UnknownRegionException;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptor;
@@ -721,7 +722,7 @@ public class MergeTableRegionsProcedure
         LOG.error(
           "Row key of mutation from coprocessor is not parsable as region name. "
             + "Mutations from coprocessor should only be for {} table.",
-          TableName.META_TABLE_NAME, e);
+          MetaTableName.getInstance(), e);
         throw e;
       }
     }

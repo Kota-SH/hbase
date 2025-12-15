@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MetaTableAccessor;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.RegionInfoBuilder;
@@ -199,18 +200,18 @@ public class MetaFixer {
     final List<IOException> createMetaEntriesFailures = addMetaEntriesResults.stream()
       .filter(Either::hasRight).map(Either::getRight).collect(Collectors.toList());
     LOG.debug("Added {}/{} entries to {}", createMetaEntriesSuccesses.size(), newRegionInfos.size(),
-      TableName.META_TABLE_NAME);
+      MetaTableName.getInstance());
 
     if (!createMetaEntriesFailures.isEmpty()) {
       LOG.warn(
-        "Failed to create entries in {} for {}/{} RegionInfo descriptors. First"
+        "Failed to create entries in {}} for {}/{} RegionInfo descriptors. First"
           + " failure message included; full list of failures with accompanying stack traces is"
           + " available at log level DEBUG. message={}",
-        TableName.META_TABLE_NAME, createMetaEntriesFailures.size(), addMetaEntriesResults.size(),
+        MetaTableName.getInstance(), createMetaEntriesFailures.size(), addMetaEntriesResults.size(),
         createMetaEntriesFailures.get(0).getMessage());
       if (LOG.isDebugEnabled()) {
         createMetaEntriesFailures.forEach(ioe -> LOG
-          .debug("Attempt to fix region hole in {} failed.", TableName.META_TABLE_NAME, ioe));
+          .debug("Attempt to fix region hole in {} failed.", MetaTableName.getInstance(), ioe));
       }
     }
 

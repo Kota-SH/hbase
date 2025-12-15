@@ -24,7 +24,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.RegionInfoBuilder;
 import org.apache.hadoop.hbase.client.Result;
@@ -140,7 +140,7 @@ class ReportMakingVisitor implements ClientMetaTableAccessor.CloseableVisitor {
         "INCONSISTENCY: Row name is not equal to serialized info:regioninfo content; "
           + "row={} {}; See if RegionInfo is referenced in another {} row? Delete?",
         Bytes.toStringBinary(metaTableRow.getRow()), ri.getRegionNameAsString(),
-        TableName.META_TABLE_NAME);
+        MetaTableName.getInstance());
       return null;
     }
     // Skip split parent region

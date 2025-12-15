@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.AsyncClusterConnection;
 import org.apache.hadoop.hbase.client.AsyncRegionServerAdmin;
@@ -605,7 +606,7 @@ public class RegionPlacementMaintainer implements Closeable {
    */
   public void updateAssignmentPlanToMeta(FavoredNodesPlan plan) throws IOException {
     try {
-      LOG.info("Started updating {} with the new assignment plan", TableName.META_TABLE_NAME);
+      LOG.info("Started updating {} with the new assignment plan", MetaTableName.getInstance());
       Map<String, List<ServerName>> assignmentMap = plan.getAssignmentMap();
       Map<RegionInfo, List<ServerName>> planToUpdate = new HashMap<>(assignmentMap.size());
       Map<String, RegionInfo> regionToRegionInfoMap =
@@ -617,8 +618,9 @@ public class RegionPlacementMaintainer implements Closeable {
       FavoredNodeAssignmentHelper.updateMetaWithFavoredNodesInfo(planToUpdate, conf);
       LOG.info("Updated {} with the new assignment plan", TableName.META_TABLE_NAME);
     } catch (Exception e) {
-      LOG.error("Failed to update {} with the new assignment plan because {}",
-        TableName.META_TABLE_NAME, e.getMessage());
+      LOG.error(
+        "Failed to update hbase:meta with the new assignment" + "plan because " + e.getMessage());
+      LOG.info("Updated {} with the new assignment plan", MetaTableName.getInstance());
     }
   }
 
@@ -691,13 +693,13 @@ public class RegionPlacementMaintainer implements Closeable {
 
   public void updateAssignmentPlan(FavoredNodesPlan plan) throws IOException {
     LOG.info("Started updating the new assignment plan for {} and the region servers",
-      TableName.META_TABLE_NAME);
+      MetaTableName.getInstance());
     // Update the new assignment plan to META
     updateAssignmentPlanToMeta(plan);
     // Update the new assignment plan to Region Servers
     updateAssignmentPlanToRegionServers(plan);
     LOG.info("Finished updating the new assignment plan for {} and the region servers",
-      TableName.META_TABLE_NAME);
+      MetaTableName.getInstance());
   }
 
   /**
