@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.RestrictedApi;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotAllMetaRegionsOnlineException;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.master.RegionState;
@@ -167,11 +167,11 @@ public final class MetaTableLocator {
     RegionState.State state) throws KeeperException {
     if (serverName == null) {
       LOG.warn("Tried to set null ServerName in {}; skipping -- ServerName required",
-        TableName.META_TABLE_NAME);
+        MetaTableName.getInstance());
       return;
     }
     LOG.info("Setting {} replicaId={} location in ZooKeeper as {}, state={}",
-      TableName.META_TABLE_NAME, replicaId, serverName, state);
+      MetaTableName.getInstance(), replicaId, serverName, state);
     // Make the MetaRegionServer pb and then get its bytes and save this as
     // the znode content.
     MetaRegionServer pbrsr =
@@ -182,10 +182,10 @@ public final class MetaTableLocator {
       ZKUtil.setData(zookeeper, zookeeper.getZNodePaths().getZNodeForReplica(replicaId), data);
     } catch (KeeperException.NoNodeException nne) {
       if (replicaId == RegionInfo.DEFAULT_REPLICA_ID) {
-        LOG.debug("{} region location doesn't exist, create it", TableName.META_TABLE_NAME);
+        LOG.debug("{} region location doesn't exist, create it", MetaTableName.getInstance());
       } else {
         LOG.debug("{} region location doesn't exist for replicaId={}, create it",
-          TableName.META_TABLE_NAME, replicaId);
+          MetaTableName.getInstance(), replicaId);
       }
       ZKUtil.createAndWatch(zookeeper, zookeeper.getZNodePaths().getZNodeForReplica(replicaId),
         data);
@@ -235,9 +235,9 @@ public final class MetaTableLocator {
 
   public static void deleteMetaLocation(ZKWatcher zookeeper, int replicaId) throws KeeperException {
     if (replicaId == RegionInfo.DEFAULT_REPLICA_ID) {
-      LOG.info("Deleting {} region location in ZooKeeper", TableName.META_TABLE_NAME);
+      LOG.info("Deleting {} region location in ZooKeeper", MetaTableName.getInstance());
     } else {
-      LOG.info("Deleting {} for {} region location in ZooKeeper", TableName.META_TABLE_NAME,
+      LOG.info("Deleting {} for {} region location in ZooKeeper", MetaTableName.getInstance(),
         replicaId);
     }
     try {

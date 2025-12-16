@@ -81,30 +81,8 @@ public final class TableName implements Comparable<TableName> {
    * The name of hbase meta table could either be hbase:meta_xxx or 'hbase:meta' otherwise. Config
    * hbase.meta.table.suffix will govern the decision of adding suffix to the habase:meta
    */
-  public static final TableName META_TABLE_NAME;
-  static {
-    Configuration conf = HBaseConfiguration.create();
-    META_TABLE_NAME = initializeHbaseMetaTableName(conf);
-    LOG.info("Meta table name: {}", META_TABLE_NAME);
-  }
-
-  /* Visible for testing only */
-  @RestrictedApi(explanation = "Should only be called in tests", link = "",
-      allowedOnPath = ".*/src/test/.*")
-  public static TableName getDefaultNameOfMetaForReplica() {
-    return valueOf(NamespaceDescriptor.SYSTEM_NAMESPACE_NAME_STR, "meta");
-  }
-
-  public static TableName initializeHbaseMetaTableName(Configuration conf) {
-    String suffix_val = conf.get(HConstants.HBASE_META_TABLE_SUFFIX,
-      HConstants.HBASE_META_TABLE_SUFFIX_DEFAULT_VALUE);
-    LOG.info("Meta table suffix value: {}", suffix_val);
-    if (Strings.isNullOrEmpty(suffix_val)) {
-      return valueOf(NamespaceDescriptor.SYSTEM_NAMESPACE_NAME_STR, "meta");
-    } else {
-      return valueOf(NamespaceDescriptor.SYSTEM_NAMESPACE_NAME_STR, "meta_" + suffix_val);
-    }
-  }
+  @Deprecated
+  public static TableName META_TABLE_NAME = TableName.valueOf("hbase:meta");
 
   /**
    * The Namespace table's name.
@@ -326,7 +304,7 @@ public final class TableName implements Comparable<TableName> {
     }
     if (qualifierAsString.equals(OLD_META_STR)) {
       throw new IllegalArgumentException(
-        OLD_META_STR + " no longer exists. The table has been " + "renamed to " + META_TABLE_NAME);
+        OLD_META_STR + " no longer exists. The table has been " + "renamed to " + MetaTableName.getInstance());
     }
 
     if (Bytes.equals(NamespaceDescriptor.DEFAULT_NAMESPACE_NAME, namespace)) {
