@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MetaTableAccessor;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -86,7 +87,7 @@ public class RefreshMetaProcedure extends AbstractStateMachineTableProcedure<Ref
 
   @Override
   public TableName getTableName() {
-    return TableName.META_TABLE_NAME;
+    return MetaTableName.getInstance();
   }
 
   @Override
@@ -116,7 +117,7 @@ public class RefreshMetaProcedure extends AbstractStateMachineTableProcedure<Ref
   }
 
   private Flow executeInit(MasterProcedureEnv env) throws IOException {
-    LOG.trace("Getting current regions from {} table", TableName.META_TABLE_NAME);
+    LOG.trace("Getting current regions from {} table", MetaTableName.getInstance());
     try {
       currentRegions = getCurrentRegions(env.getMasterServices().getConnection());
       LOG.info("Found {} current regions in meta table", currentRegions.size());

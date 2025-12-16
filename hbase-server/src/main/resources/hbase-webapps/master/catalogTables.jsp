@@ -20,7 +20,6 @@
 
 <%@ page contentType="text/html;charset=UTF-8"
          import="java.util.*"
-         import="org.apache.hadoop.hbase.MetaTableName"
          import="org.apache.hadoop.hbase.NamespaceDescriptor"
          import="org.apache.hadoop.hbase.TableName"
          import="org.apache.hadoop.hbase.master.HMaster"
@@ -28,13 +27,12 @@
          import="org.apache.hadoop.hbase.security.access.PermissionStorage"
          import="org.apache.hadoop.hbase.security.visibility.VisibilityConstants"
          import="org.apache.hadoop.hbase.tool.CanaryTool"
-         import="org.apache.hadoop.hbase.client.*"
-         import="org.apache.hadoop.hbase.master.http.MasterStatusConstants" %>
+         import="org.apache.hadoop.hbase.client.*" %>
 
 <%
   HMaster master = (HMaster) getServletContext().getAttribute(HMaster.MASTER);
 
-  Map<String, Integer> frags = (Map<String, Integer>) request.getAttribute(MasterStatusConstants.FRAGS);
+  Map<String, Integer> frags = (Map<String, Integer>) request.getAttribute("frags");
 
   List<TableDescriptor> sysTables = master.isInitialized() ?
   master.listTableDescriptorsByNamespace(NamespaceDescriptor.SYSTEM_NAMESPACE_NAME_STR) : null;
@@ -57,7 +55,7 @@
         <td align="center"><%= frags.get(tableName.getNameAsString()) != null ? frags.get(tableName.getNameAsString()) + "%" : "n/a" %></td>
       <% } %>
     <% String description = null;
-        if (tableName.equals(MetaTableName.getInstance())){
+        if (tableName.equals(TableName.META_TABLE_NAME)){
             description = "The hbase:meta table holds references to all User Table regions.";
         } else if (tableName.equals(CanaryTool.DEFAULT_WRITE_TABLE_NAME)){
             description = "The hbase:canary table is used to sniff the write availability of"

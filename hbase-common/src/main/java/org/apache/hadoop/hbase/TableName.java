@@ -53,8 +53,6 @@ import org.apache.hbase.thirdparty.com.google.common.base.Preconditions;
 public final class TableName implements Comparable<TableName> {
   private static final Logger LOG = LoggerFactory.getLogger(TableName.class);
 
-  private static final Logger LOG = LoggerFactory.getLogger(TableName.class);
-
   /** See {@link #createTableNameIfNecessary(ByteBuffer, ByteBuffer)} */
   private static final Set<TableName> tableCache = new CopyOnWriteArraySet<>();
 

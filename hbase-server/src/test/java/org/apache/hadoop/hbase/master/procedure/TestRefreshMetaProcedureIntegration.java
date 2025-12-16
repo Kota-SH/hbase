@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MetaTableAccessor;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
@@ -109,7 +110,8 @@ public class TestRefreshMetaProcedureIntegration {
     List<RegionInfo> activeRegions = admin.getRegions(tableName);
     assertTrue("Should have at least 2 regions after split", activeRegions.size() >= 2);
 
-    Table metaTable = TEST_UTIL.getConnection().getTable(TableName.META_TABLE_NAME);
+    Table metaTable = TEST_UTIL.getConnection().getTable(
+      MetaTableName.getInstance());
     RegionInfo regionToRemove = activeRegions.get(0);
     admin.unassign(regionToRemove.getRegionName(), false);
     Thread.sleep(1000);

@@ -1203,7 +1203,8 @@ public class HMaster extends HBaseServerBase<MasterRpcServices> implements Maste
             "The {} config is {} while the replica count in TableDescriptor is {}"
               + " for {}, altering...",
             HConstants.META_REPLICAS_NUM, replicasNumInConf, metaDesc.getRegionReplication(),
-            MetaTableName.getInstance();
+            MetaTableName.getInstance())
+          ;
           procedureExecutor.submitProcedure(new ModifyTableProcedure(
             procedureExecutor.getEnvironment(), TableDescriptorBuilder.newBuilder(metaDesc)
               .setRegionReplication(replicasNumInConf).build(),

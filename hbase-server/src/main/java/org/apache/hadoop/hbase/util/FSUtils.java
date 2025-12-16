@@ -70,6 +70,7 @@ import org.apache.hadoop.hbase.ActiveClusterSuffix;
 import org.apache.hadoop.hbase.ClusterId;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HDFSBlocksDistribution;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
 import org.apache.hadoop.hbase.client.RegionInfo;
@@ -1058,9 +1059,9 @@ public final class FSUtils {
       return false;
     }
     String dirName = tablePath.getName();
-    if (dirName.startsWith(TableName.META_TABLE_NAME.getQualifierAsString())) {
-      return TableName.valueOf(TableName.META_TABLE_NAME.getNamespaceAsString(), dirName)
-        .equals(TableName.META_TABLE_NAME);
+    if (dirName.startsWith(MetaTableName.getInstance().getQualifierAsString())) {
+      return TableName.valueOf(MetaTableName.getInstance().getNamespaceAsString(), dirName)
+        .equals(MetaTableName.getInstance());
     }
     return true;
   }

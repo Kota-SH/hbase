@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.ClusterMetrics;
 import org.apache.hadoop.hbase.CompatibilityFactory;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtil;
+import org.apache.hadoop.hbase.MetaTableName;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.ServerMetricsBuilder;
 import org.apache.hadoop.hbase.ServerName;
@@ -222,7 +223,7 @@ public class TestMasterMetrics {
       assertFalse("Foreign meta table should not be present",
         tableRegionStatesCount.containsKey(replicaMetaTable));
       assertTrue("Local meta should be present",
-        tableRegionStatesCount.containsKey(TableName.META_TABLE_NAME));
+        tableRegionStatesCount.containsKey(MetaTableName.getInstance()));
 
     } finally {
       master.getTableDescriptors().remove(replicaMetaTable);
@@ -235,7 +236,7 @@ public class TestMasterMetrics {
 
     // These tables, including the cluster's meta table, should not be foreign to the cluster.
     // The cluster should be able to find their state.
-    allTables.add(TableName.META_TABLE_NAME);
+    allTables.add(MetaTableName.getInstance());
     List<TableName> familiarTables = new ArrayList<>();
     familiarTables.add(TableName.valueOf(null, "familiarTable1"));
     familiarTables.add(TableName.valueOf("", "familiarTable2"));
@@ -280,7 +281,7 @@ public class TestMasterMetrics {
           metrics.getTableRegionStatesCount();
 
         if (
-          tableName.equals(TableName.META_TABLE_NAME)
+          tableName.equals(MetaTableName.getInstance())
             || tableName.getQualifierAsString().startsWith("familiar")
         ) {
           assertTrue("Expected this table's state to exist: " + tableName,

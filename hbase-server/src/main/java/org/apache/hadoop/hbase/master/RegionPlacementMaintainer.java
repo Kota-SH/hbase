@@ -616,7 +616,7 @@ public class RegionPlacementMaintainer implements Closeable {
       }
 
       FavoredNodeAssignmentHelper.updateMetaWithFavoredNodesInfo(planToUpdate, conf);
-      LOG.info("Updated {} with the new assignment plan", TableName.META_TABLE_NAME);
+      LOG.info("Updated {} with the new assignment plan", MetaTableName.getInstance());
     } catch (Exception e) {
       LOG.error(
         "Failed to update hbase:meta with the new assignment" + "plan because " + e.getMessage());
